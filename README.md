@@ -2,4 +2,10 @@
 
 An Internet of Things door lock using an Arduino and the SmartThings platform.
 
-![screenshot](screenshot.jpg)
+## Electrical Schematic
+
+![screenshot](fritzing/SmartThings Lock Fritzing.jpg)
+
+## Digital Model
+
+![screenshot](solidworks/SmartThings Lock Solidworks.jpg)
