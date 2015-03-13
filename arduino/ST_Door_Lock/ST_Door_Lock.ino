@@ -15,7 +15,6 @@
 //******************************************************************************************
 #include <SoftwareSerial.h> //Arduino UNO/Leonardo uses SoftwareSerial for the SmartThings Library
 #include <SmartThings.h>    //Library to provide API to the SmartThings Shield
-#include <dht.h>            //DHT Temperature and Humidity Library
 #include <RCSwitch.h>       //Library to provide support for RCSwitch devices
 //******************************************************************************************
 // ST_Anything Library
@@ -75,16 +74,16 @@ long doorCloseTriggered = 0;
 
 void setup()
 {
-//  st::Everything::debug=true;
-//  st::Executor::debug=true;
-//  st::Device::debug=true;
-//  st::PollingSensor::debug=true;
-//  st::InterruptSensor::debug=true;
+  st::Everything::debug=true;
+  st::Executor::debug=true;
+  st::Device::debug=true;
+  st::PollingSensor::debug=true;
+  st::InterruptSensor::debug=true;
 //  st::Everything::init();
-//
-//  st::Everything::addSensor(&sensor1);
-//  st::Everything::addSensor(&sensor2);
-//  st::Everything::addSensor(&sensor3);
+
+  st::Everything::addSensor(&sensor1);
+  st::Everything::addSensor(&sensor2);
+  st::Everything::addSensor(&sensor3);
   //st::Everything::addExecutor(&executor1);
   
   pinMode(PIN_BUZZER, OUTPUT);
@@ -92,7 +91,6 @@ void setup()
   servo.write(SERVO_NEUTRAL);
   
   // init ST_Anything
-//  st::Everything::SmartThing.shieldSetLED(1, 0.5, 0); // orange
 //  st::Everything::initDevices();
 
     Serial.begin(9600);         // setup serial with a baud rate of 9600
@@ -113,7 +111,7 @@ void lock() {
   servo.write(SERVO_NEUTRAL);
   
   // this acts as a nice timeout before doing other actions
-  delay(4 * SERVO_DELAY);
+  delay(2 * SERVO_DELAY);
 }
 
 void unlock() {
@@ -130,7 +128,7 @@ void unlock() {
   servo.write(SERVO_NEUTRAL);
   
   // this acts as a nice timeout before doing other actions
-  delay(4 * SERVO_DELAY);
+  delay(2 * SERVO_DELAY);
 }
 
 void readSensors() {
