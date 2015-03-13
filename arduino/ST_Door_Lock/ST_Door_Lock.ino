@@ -1,44 +1,12 @@
 //******************************************************************************************
-//  File: ST_Anything_Doors.ino
-//  Authors: Dan G Ogorchock & Daniel J Ogorchock (Father and Son)
-//
-//  Summary:  This Arduino Sketch, along with the ST_Anything library and the revised SmartThings
-//            library, demonstrates the ability of one Arduino + SmartThings Shield to
-//            implement a multi input/output custom device for integration into SmartThings.
-//            The ST_Anything library takes care of all of the work to schedule device updates
-//            as well as all communications with the SmartThings Shield.
-//
-//            ST_Anything_Doors implements the following:
-//              - 2 x Door Control devices (used as Garage Doors)
-//              - 4 x Contact Sensor devices (used to monitor magnetic door sensors)
-//              - 1 x Motion device (used to detect motion in the garage)
-//              - 1 x Temperature/Humidity device (unsed to monitor temp & humidity in the garage)
-//
-//            During the development of this re-usable library, it became apparent that the
-//            Arduino UNO R3's very limited 2K of SRAM was very limiting in the number of
-//            devices that could be implemented simultaneously.  A tremendous amount of effort
-//            has gone into reducing the SRAM usage, including siginificant improvements to
-//            the SmartThings Arduino library.  The SmartThings library was also modified to
-//            include support for using Hardware Serial port(s) on the UNO, MEGA, and Leonardo.
-//            During testing, it was determined that the Hardware Serial ports provide much
-//            better performance and reliability versus the SoftwareSerial library.  Also, the
-//            MEGA 2560's 8K of SRAM is well worth the few extra dollars to save your sanity
-//            versus always running out of SRAM on the UNO R3.  The MEGA 2560 also has 4 Hardware
-//            serial ports (i.e. UARTS) which makes it very easy to use Hardware Serial instead
-//            of SoftwareSerial, while still being able to see debug data on the USB serial
-//            console port (pins 0 & 1).
-//
-//            Note: We did not have a Leonardo for testing, but did fully test on UNO R3 and
-//            MEGA 2560 using both SoftwareSerial and Hardware Serial communications to the
-//            Thing Shield.
+//  File: ST_Door_Lock.ino
+//  Authors: Josh Villbrandt
 //
 //  Change History:
 //
-//    Date        Who            What
-//    ----        ---            ----
-//    2015-01-03  Dan & Daniel   Original Creation
-//    2015-01-07  Dan Ogorchock  Modified for Door Monitoring and Garage Door Control
-//
+//    Date        Who              What
+//    ----        ---              ----
+//    2015-03-13  Josh Villbrandt  Inital script]
 //
 //******************************************************************************************
 
@@ -64,11 +32,29 @@
 #include <IS_DoorControl.h> //Implements an Interrupt Sensor (IS) and Executor to monitor the status of a digital input pin and control a digital output pin
 
 // pins
-#define PIN_REED_DOOR                7
-#define PIN_REED_LOCK                8
-#define PIN_SERVO                    9
-#define PIN_BUZZER                   10
-#define PIN_MOTION                   11
+#define PIN_REED_DOOR     7
+#define PIN_REED_LOCK     8
+#define PIN_SERVO         9
+#define PIN_BUZZER        10
+#define PIN_MOTION        11
+
+// buzzer
+#define BUZZER_HIGH       294 // NOTE_D4
+#define BUZZER_LOW        147 // NOTE_D3
+#define BUZZER_DURATION   125 // ms
+
+// servo
+#include <Servo.h>
+Servo servo;
+#define SERVO_NEUTRAL     73  // deg
+#define SERVO_LOCK        140 // deg
+#define SERVO_UNLOCK      30  // deg
+#define SERVO_DELAY       500 // ms
+
+// timeouts
+#define MOTION_TIMEOUT    1000 // ms
+#define UNLOCK_TIMEOUT    5000 // ms
+#define CLOSE_TIMEOUT     3000 // ms
 
 // sensors
 st::IS_Contact sensor1("door", PIN_REED_DOOR, LOW, true);
@@ -76,32 +62,177 @@ st::IS_Contact sensor2("lock", PIN_REED_LOCK, LOW, true);
 st::IS_Motion sensor3("motion", PIN_MOTION, HIGH, false);
 //st::EX_Switch executor1("sampleEX", PIN_sampleEX, LOW, true);
 
+// state variables
+int motionRaw = LOW;
+int motion = LOW;
+int doorClosedRaw = LOW;
+int doorClosed = LOW;
+int doorLockedRaw = HIGH;
+int doorLocked = HIGH;
+long motionTriggered = 0;
+long doorUnlockTriggered = 0;
+long doorCloseTriggered = 0;
+
 void setup()
 {
-  st::Everything::debug=true;
-  st::Executor::debug=true;
-  st::Device::debug=true;
-  st::PollingSensor::debug=true;
-  st::InterruptSensor::debug=true;
-  st::Everything::init();
-
-  st::Everything::addSensor(&sensor1);
-  st::Everything::addSensor(&sensor2);
-  st::Everything::addSensor(&sensor3);
+//  st::Everything::debug=true;
+//  st::Executor::debug=true;
+//  st::Device::debug=true;
+//  st::PollingSensor::debug=true;
+//  st::InterruptSensor::debug=true;
+//  st::Everything::init();
+//
+//  st::Everything::addSensor(&sensor1);
+//  st::Everything::addSensor(&sensor2);
+//  st::Everything::addSensor(&sensor3);
   //st::Everything::addExecutor(&executor1);
-  st::Everything::initDevices();
+  
+  pinMode(PIN_BUZZER, OUTPUT);
+  servo.attach(PIN_SERVO);
+  servo.write(SERVO_NEUTRAL);
+  
+  // init ST_Anything
+//  st::Everything::SmartThing.shieldSetLED(1, 0.5, 0); // orange
+//  st::Everything::initDevices();
+
+    Serial.begin(9600);         // setup serial with a baud rate of 9600
+    Serial.println("setup..");  // print out 'setup..' on start
+}
+
+void lock() {
+  Serial.println("Locking...");
+  
+  // lock the door
+  servo.write(SERVO_LOCK);
+  tone(PIN_BUZZER, BUZZER_LOW);
+  delay(BUZZER_DURATION);
+  tone(PIN_BUZZER, BUZZER_HIGH, BUZZER_DURATION);
+  delay(SERVO_DELAY - BUZZER_DURATION);
+  
+  // return servo to neutral position
+  servo.write(SERVO_NEUTRAL);
+  
+  // this acts as a nice timeout before doing other actions
+  delay(4 * SERVO_DELAY);
+}
+
+void unlock() {
+  Serial.println("Unlocking...");
+  
+  // unlock the door
+  servo.write(SERVO_UNLOCK);
+  tone(PIN_BUZZER, BUZZER_HIGH);
+  delay(BUZZER_DURATION);
+  tone(PIN_BUZZER, BUZZER_LOW, BUZZER_DURATION);
+  delay(SERVO_DELAY - BUZZER_DURATION);
+  
+  // return servo to neutral position
+  servo.write(SERVO_NEUTRAL);
+  
+  // this acts as a nice timeout before doing other actions
+  delay(4 * SERVO_DELAY);
+}
+
+void readSensors() {
+  motionRaw = digitalRead(PIN_MOTION);
+  doorClosedRaw = !digitalRead(PIN_REED_DOOR);
+  doorLockedRaw = !digitalRead(PIN_REED_LOCK);
+  
+  // PIR timeout is too long - use rising edge of motionRaw to trigger motion,
+  // but then motion back to LOW before motionRaw is at LOW
+  if(motion == LOW && motionRaw == HIGH && motionTriggered == 0)
+  {
+    motion = HIGH;
+    motionTriggered = millis();
+  }
+  if(motion == HIGH && millis() > (motionTriggered + MOTION_TIMEOUT))
+  {
+    motion = LOW;
+  }
+  if(motionRaw == LOW) {
+    motionTriggered = 0;
+  }
+  
+  // debounce lock state so that the lock does not fight us when we unlock the
+  // door from outside when no motion is present (motion sensor is on the inside)
+  if(doorLockedRaw == LOW)
+  {
+    // stagger door unlock propagation
+    if(doorLocked == HIGH)
+    {
+      if(doorUnlockTriggered == 0)
+      {
+        doorUnlockTriggered = millis();
+      }
+      else if(millis() > (doorUnlockTriggered + UNLOCK_TIMEOUT))
+      {
+        doorLocked = LOW;
+      }
+    }
+  }
+  else
+  {
+    // immediately notify that door is locked
+    doorLocked = HIGH;
+    doorUnlockTriggered = 0;
+  }
+  
+  // don't try to lock the door while the door is still closing and give
+  // the person a chance to re-open the door after closing before locking
+  if(doorClosedRaw == HIGH)
+  {
+    // stagger door close propagation
+    if(doorClosed == LOW)
+    {
+      if(doorCloseTriggered == 0)
+      {
+        doorCloseTriggered = millis();
+      }
+      else if(millis() > (doorCloseTriggered + CLOSE_TIMEOUT))
+      {
+        doorClosed = HIGH;
+      }
+    }
+  }
+  else
+  {
+    // immediately notify that door is locked
+    doorClosed = LOW;
+    doorCloseTriggered = 0;
+  }
+  
+  
+  // debug
+  Serial.print("motion: ");
+  Serial.print(motion);
+  Serial.print(", doorClosed: ");
+  Serial.print(doorClosed);
+  Serial.print(", doorLocked: ");
+  Serial.print(doorLocked);
+  Serial.println();
 }
 
 void loop()
 {
-  st::Everything::run();
+//  st::Everything::run();
   
-  // temporarily read in the motion sensor here too
-  int motion = digitalRead(PIN_MOTION);
+  // read in sensor values
+  readSensors();
+  
+  // predefined automated responses
   if(motion) {
-    st::Everything::SmartThing.shieldSetLED(0, 1, 1); // cyan
+//    st::Everything::SmartThing.shieldSetLED(0, 1, 1); // cyan
+    
+    // unlock the door if motion is detected
+    if(doorClosed && doorLocked) {
+      unlock();
+    }
   }
   else {
-    st::Everything::SmartThing.shieldSetLED(0, 0, 0); // off
+    
+    // lock the door when no motion is detected
+    if(doorClosed && !doorLocked) {
+      lock();
+    }
   }
 }
