@@ -74,27 +74,30 @@ long doorCloseTriggered = 0;
 
 void setup()
 {
-  st::Everything::debug=true;
-  st::Executor::debug=true;
-  st::Device::debug=true;
-  st::PollingSensor::debug=true;
-  st::InterruptSensor::debug=true;
+//  st::Everything::debug=true;
+//  st::Executor::debug=true;
+//  st::Device::debug=true;
+//  st::PollingSensor::debug=true;
+//  st::InterruptSensor::debug=true;
 //  st::Everything::init();
 
-  st::Everything::addSensor(&sensor1);
-  st::Everything::addSensor(&sensor2);
-  st::Everything::addSensor(&sensor3);
+//  st::Everything::addSensor(&sensor1);
+//  st::Everything::addSensor(&sensor2);
+//  st::Everything::addSensor(&sensor3);
   //st::Everything::addExecutor(&executor1);
+//  st::Everything::initDevices();
+  
+  
+  pinMode(PIN_REED_DOOR, INPUT_PULLUP);
+  pinMode(PIN_REED_LOCK, INPUT_PULLUP);
+  pinMode(PIN_MOTION, INPUT);
   
   pinMode(PIN_BUZZER, OUTPUT);
   servo.attach(PIN_SERVO);
   servo.write(SERVO_NEUTRAL);
-  
-  // init ST_Anything
-//  st::Everything::initDevices();
 
-    Serial.begin(9600);         // setup serial with a baud rate of 9600
-    Serial.println("setup..");  // print out 'setup..' on start
+  Serial.begin(9600);         // setup serial with a baud rate of 9600
+  Serial.println("setup..");  // print out 'setup..' on start
 }
 
 void lock() {
