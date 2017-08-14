@@ -2,6 +2,8 @@
 
 An Internet of Things door lock using an Arduino and the SmartThings platform.
 
+![as-built screenshot](https://github.com/joshvillbrandt/SmartThings-Lock/blob/master/SmartThings%20Lock%20As-Built.png)
+
 ## Summary
 
 This projects creates a network-connected door lock. The device uses two reed switches to report the open/closed status of the door and the locked/unlocked status of the lock. The door's lock may be engaged and disengaged via a servo. The locking mechanism works without inhibiting the door to be locked or unlocked via standard methods (using a key or by turning the thumb-turn.)
@@ -24,8 +26,8 @@ An Arduino Uno with a SmartThings ThingShield connects to the SmartThings hub wi
 
 ## Electrical Schematic
 
-![screenshot](fritzing/SmartThings%20Lock%20Fritzing.jpg)
+![electrical screenshot](fritzing/SmartThings%20Lock%20Fritzing.jpg)
 
 ## Digital Model
 
-![screenshot](solidworks/SmartThings%20Lock%20Solidworks.jpg)
+![mechanical screenshot](solidworks/SmartThings%20Lock%20Solidworks.jpg)
