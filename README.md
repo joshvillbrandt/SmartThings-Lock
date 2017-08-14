@@ -24,8 +24,8 @@ An Arduino Uno with a SmartThings ThingShield connects to the SmartThings hub wi
 
 ## Electrical Schematic
 
-![screenshot](fritzing/SmartThings Lock Fritzing.jpg)
+![screenshot](fritzing/SmartThings%20Lock%20Fritzing.jpg)
 
 ## Digital Model
 
-![screenshot](solidworks/SmartThings Lock Solidworks.jpg)
+![screenshot](solidworks/SmartThings%20Lock%20Solidworks.jpg)
